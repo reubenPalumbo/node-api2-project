@@ -4,13 +4,15 @@ const db = require("./data/db");
 const router = express.Router();
 
 router.get("/api/posts", (req, res) => {
-  try {
-    res.status(200).json(db);
-  } catch (err) {
-    res.status(500).json({
-      error: "The posts information could not be retrieved.",
+  db.find()
+    .then((post) => {
+      res.status(200).json(post);
+    })
+    .catch((error) => {
+      res.status(500).json({
+        error: "The posts information could not be retrieved.",
+      });
     });
-  }
 });
 
 router.get("/api/posts/:id", (req, res) => {
@@ -20,7 +22,7 @@ router.get("/api/posts/:id", (req, res) => {
       message: "The post with the specified ID does not exist.",
     });
   } else {
-    db.findById(req.query)
+    db.findById(id)
       .then((post) => {
         res.status(200).json(post);
       })
@@ -39,7 +41,7 @@ router.get("/api/posts/:id/comments", (req, res) => {
       message: "The post with the specified ID does not exist.",
     });
   } else {
-    db.findCommentById(id)
+    db.findPostComments(id)
       .then((post) => {
         res.status(200).json(post);
       })
@@ -71,24 +73,30 @@ router.post("/api/posts", (req, res) => {
 });
 
 router.post("/api/posts/:id/comments", (req, res) => {
-  const message = { id: req.params.id, ...req.body };
+  const message = { post_id: req.params.id, ...req.body };
   if (!message.text) {
     res.status(400).json({
       errorMessage: "Please provide text for the comment.",
     });
   } else {
-    if (db.findById(message.id) === message.id) {
-      db.insertComment(message)
-        .then((post) => {
-          res.status(201).json(post);
-        })
-        .catch((error) => {
-          res.status(404).json({
-            error: "The post with the specified ID does not exist.",
+    db.findById(message.post_id)
+      .then((post) => {
+        db.insertComment(message)
+          .then((post) => {
+            res.status(201).json(post);
+          })
+          .catch((error) => {
+            res.status(500).json({
+              error:
+                "There was an error while saving the comment to the database",
+            });
           });
+      })
+      .catch((error) => {
+        res.status(404).json({
+          message: "The post with the specified ID does not exist.",
         });
-    } else {
-    }
+      });
   }
 });
 
