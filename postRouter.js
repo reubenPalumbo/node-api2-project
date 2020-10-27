@@ -100,4 +100,55 @@ router.post("/api/posts/:id/comments", (req, res) => {
   }
 });
 
+router.delete("/api/posts/:id", (req, res) => {
+  const { id } = req.params;
+  if (db.findById(id) === id) {
+    res.status(404).json({
+      message: "The post with the specified ID does not exist.",
+    });
+  } else {
+    db.findById(id).then((removed) => {
+      db.remove(id)
+        .then((post) => {
+          res.status(200).json(removed);
+        })
+        .catch((error) => {
+          res.status(500).json({
+            error: "The post could not be removed",
+          });
+        });
+    });
+  }
+});
+
+router.put("/api/posts/:id", (req, res) => {
+  const changes = req.body;
+
+  const { id } = req.params;
+  if (db.findById(id) === id) {
+    res.status(404).json({
+      message: "The post with the specified ID does not exist.",
+    });
+  } else {
+    if (!changes.title || !changes.contents) {
+      res.status(400).json({
+        errorMessage: "Please provide title and contents for the post.",
+      });
+    } else {
+      db.update(id, changes)
+        .then((post) => {
+          db.findById(id).then((post) => {
+            res.status(200).json(post);
+          });
+        })
+        .catch((error) => {
+          console.log(error);
+          res
+            .status(500)
+            .json({ error: "The post information could not be modified." });
+        });
+    }
+  }
+});
+
 module.exports = router;
